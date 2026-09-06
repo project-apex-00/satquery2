@@ -1,0 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+google-genai
+google-generativeai
+huggingface_hub
+transformers
+pillow
+torch
+numpy
+rasterio

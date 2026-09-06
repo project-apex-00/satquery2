@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SatQuery AI — Remote Sensing Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Poppins:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- ============ INTERACTION LAYER — scroll progress, cursor spotlight, section nav ============ -->
+  <div class="scroll-progress" aria-hidden="true"><div class="scroll-progress-fill" id="scroll-progress-fill"></div></div>
+  <div class="cursor-glow" id="cursor-glow" aria-hidden="true"></div>
+  <nav class="section-dots" id="section-dots" aria-label="Jump to section">
+    <button type="button" class="dot active" data-target="hero-section" data-label="Overview" aria-label="Go to overview"></button>
+    <button type="button" class="dot" data-target="console" data-label="Console" aria-label="Go to console"></button>
+    <button type="button" class="dot" data-target="audit-section" data-label="Audit Trail" aria-label="Go to audit trail"></button>
+  </nav>
+
+  <!-- ============ FIXED SPACE BACKDROP — sits behind the whole page ============ -->
+  <div class="space-layer" aria-hidden="true">
+    <div class="space-void"></div>
+    <div class="space-stars"></div>
+    <div class="space-globe-wrap">
+      <video class="space-globe-video" autoplay muted loop playsinline preload="auto" poster="earth-poster.jpg" aria-hidden="true">
+        <source src="earth-bg.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="space-vignette"></div>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <header class="hero" id="hero-section">
+    <div class="hero-scrim"></div>
+
+    <div class="hero-nav">
+      <div class="brand">
+        <span class="brand-icon">🛰️</span>
+        <span class="brand-word">SatQuery<i>AI</i></span>
+      </div>
+      <div class="hero-nav-actions">
+        <div id="backend-status" class="status-badge offline" title="Checking backend...">
+          <span class="status-dot"></span>
+          <span id="status-text">Checking Backend…</span>
+        </div>
+        <button id="settings-toggle-btn" class="icon-btn" type="button" title="Backend Settings" aria-label="Backend settings">⚙️</button>
+      </div>
+    </div>
+
+    <div id="settings-panel" class="settings-panel hidden">
+      <label for="api-url-input">Backend API URL</label>
+      <input type="text" id="api-url-input" value="http://localhost:8000" placeholder="http://localhost:8000" />
+      <button id="save-api-url-btn" class="btn-pill btn-pill-ghost" type="button">Save &amp; Reconnect</button>
+    </div>
+
+    <div class="hero-copy">
+      <span class="hero-eyebrow"><span class="reveal-mask"><span class="reveal-line">ISRO&ndash;SAC &middot; Problem Statement 26167</span></span></span>
+      <h1 class="hero-title"><span class="reveal-mask"><span class="reveal-line">SatQuery AI</span></span></h1>
+      <div class="hero-rule"><span></span></div>
+      <p class="hero-lede">An agentic vision-language assistant for satellite imagery. A EuroSAT-adapted core reads your question, then routes it to the right specialist — land-cover VQA, text-guided grounding, bi-temporal change understanding, or optical&ndash;SAR fusion — and grounds every answer in visual evidence, with the full decision trail logged for audit.</p>
+      <div class="hero-cta">
+        <button id="hero-launch-btn" class="btn-pill btn-pill-primary" type="button">Open the Console</button>
+        <a href="#audit-section" class="btn-pill btn-pill-outline">View Audit Trail</a>
+      </div>
+      <p class="hero-meta">Fine-tuned on EuroSAT &nbsp;&middot;&nbsp; Evaluated on VRSBench, RSVQA &amp; CDVQA &nbsp;&middot;&nbsp; Validated on Cartosat-2S + RISAT pairs</p>
+    </div>
+
+    <button class="hero-scroll" id="scroll-cue" type="button" aria-label="Scroll to console">
+      <svg viewBox="0 0 26 33" fill="none" aria-hidden="true">
+        <path d="M13 1.5 V31.5 M1.9 20.4 L13 31.5 L24.1 20.4" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ============ CONSOLE ============ -->
+  <div class="console-shell" id="console">
+  <div class="app-container">
+
+    <nav class="mode-tabs">
+      <span class="tab-indicator" id="tab-indicator"></span>
+      <button class="mode-tab active" data-mode="single">
+        <span class="tab-icon">🖼️</span> Single Image (VQA &amp; Grounding)
+      </button>
+      <button class="mode-tab" data-mode="change">
+        <span class="tab-icon">⏳</span> Bi-Temporal Change Analysis
+      </button>
+      <button class="mode-tab" data-mode="fusion">
+        <span class="tab-icon">📡</span> Optical + SAR Cross-Modal Fusion
+      </button>
+    </nav>
+
+    <main class="main-grid">
+      <section class="card input-card">
+        <div class="section-title-row">
+          <h2 id="step1-title">1. Upload Imagery</h2>
+          <span id="mode-indicator-badge" class="badge badge-primary">Single Image Mode</span>
+        </div>
+
+        <div id="single-upload-container">
+          <div id="drop-zone-single" class="drop-zone">
+            <input type="file" id="image-input-single" accept="image/png, image/jpeg, image/tiff, .tif, .tiff" hidden />
+            <div class="drop-zone-prompt" id="drop-prompt-single">
+              <div class="upload-icon">📷</div>
+              <p><strong>Click to browse</strong> or drag &amp; drop satellite image</p>
+              <span class="file-types">GeoTIFF (.tif), PNG, JPEG</span>
+            </div>
+            <div id="preview-container-single" class="preview-container hidden">
+              <img id="image-preview-single" src="" alt="Satellite image preview" />
+              <div class="preview-meta">
+                <span id="preview-filename-single">image.png</span>
+                <span id="preview-filesize-single">0 KB</span>
+                <button id="remove-btn-single" class="btn-text-danger" type="button">Remove</button>
+              </div>
+            </div>
+          </div>
+          <div class="sample-actions">
+            <span>Need sample data?</span>
+            <button id="use-sample-single-btn" type="button" class="btn-link">Use built-in satellite patch</button>
+          </div>
+        </div>
+
+        <div id="dual-upload-container" class="hidden">
+          <div class="dual-drop-grid">
+            <div class="dual-slot">
+              <span class="slot-label" id="slot1-label">Image T1 (Before / Optical)</span>
+              <div id="drop-zone-1" class="drop-zone drop-zone-small">
+                <input type="file" id="image-input-1" accept="image/png, image/jpeg, image/tiff, .tif, .tiff" hidden />
+                <div class="drop-zone-prompt" id="drop-prompt-1">
+                  <div class="upload-icon-sm">📁</div>
+                  <p>Upload Slot 1</p>
+                </div>
+                <div id="preview-container-1" class="preview-container hidden">
+                  <img id="image-preview-1" src="" alt="Slot 1 preview" />
+                  <span id="preview-filename-1" class="mini-meta">image1.png</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dual-slot">
+              <span class="slot-label" id="slot2-label">Image T2 (After / SAR)</span>
+              <div id="drop-zone-2" class="drop-zone drop-zone-small">
+                <input type="file" id="image-input-2" accept="image/png, image/jpeg, image/tiff, .tif, .tiff" hidden />
+                <div class="drop-zone-prompt" id="drop-prompt-2">
+                  <div class="upload-icon-sm">📁</div>
+                  <p>Upload Slot 2</p>
+                </div>
+                <div id="preview-container-2" class="preview-container hidden">
+                  <img id="image-preview-2" src="" alt="Slot 2 preview" />
+                  <span id="preview-filename-2" class="mini-meta">image2.png</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sample-actions" style="margin-top: 10px;">
+            <span>Load demo pair:</span>
+            <button id="load-demo-pair-btn" type="button" class="btn-link">Load co-registered demo pair</button>
+          </div>
+        </div>
+
+        <h2 style="margin-top: 22px;">2. Natural Language Query</h2>
+        <div class="form-group">
+          <input
+            type="text"
+            id="question-input"
+            class="text-input"
+            placeholder="e.g. What kind of land is this?"
+            value="What kind of land is this?"
+          />
+        </div>
+
+        <div class="quick-questions" id="quick-questions-container">
+          <span class="quick-label">Representative Queries</span>
+        </div>
+
+        <div class="action-buttons">
+          <button id="analyze-btn" class="btn-pill btn-pill-primary btn-block" type="button">
+            <span class="btn-icon">🚀</span>
+            <span id="analyze-btn-text">Execute Specialist Workflow</span>
+          </button>
+          <button id="reset-btn" class="btn-pill btn-pill-ghost" type="button">Clear</button>
+        </div>
+
+        <div id="error-message" class="alert alert-error hidden"></div>
+      </section>
+
+      <section class="card results-card">
+        <div class="card-header-flex">
+          <h2>Analysis &amp; Evidence</h2>
+          <div class="badges-row">
+            <span id="task-badge" class="badge badge-info hidden">single_image_vqa</span>
+            <span id="tools-badge" class="badge badge-secondary hidden">Tools: RS-EuroSAT</span>
+          </div>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">🛰️</div>
+          <h3>Awaiting Input</h3>
+          <p>Upload remote-sensing imagery and run the workflow to trigger the agentic controller, specialist tools, and Gemini reasoning.</p>
+        </div>
+
+        <div id="loading-state" class="loading-state hidden">
+          <div class="spinner"></div>
+          <p class="loading-title">Orchestrating Specialist Tools…</p>
+          <p class="loading-step" id="loading-step-text">Validating inputs &amp; executing specialist models…</p>
+        </div>
+
+        <div id="results-content" class="results-content hidden">
+          <div class="result-block answer-block">
+            <div class="block-title">
+              <span class="block-icon">✨</span>
+              <h3>Evidence-Grounded AI Analysis</h3>
+            </div>
+            <div id="gemini-answer" class="answer-text"></div>
+          </div>
+
+          <div id="visual-evidence-block" class="result-block evidence-block hidden">
+            <div class="block-title">
+              <span class="block-icon">🗺️</span>
+              <h3 id="evidence-title">Spatial Visual Evidence</h3>
+              <span class="badge badge-success">Grounded Proof</span>
+            </div>
+            <div class="evidence-image-wrap">
+              <img id="visual-evidence-img" src="" alt="Visual Evidence" />
+            </div>
+          </div>
+
+          <div class="result-block specialist-block">
+            <div class="block-title">
+              <span class="block-icon">🔬</span>
+              <h3 id="specialist-block-title">Specialist Model Verdict</h3>
+              <span class="model-tag" id="model-tag">rs-eurosat-classifier</span>
+            </div>
+
+            <div id="single-metrics-grid" class="verdict-grid">
+              <div class="metric-card">
+                <span class="metric-label">Predicted Land Cover</span>
+                <span id="predicted-class" class="metric-value highlight">--</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Confidence Score</span>
+                <div class="metric-confidence-row">
+                  <span id="confidence-val" class="metric-value">--%</span>
+                  <div class="mini-bar-bg">
+                    <div id="confidence-bar" class="mini-bar-fill" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="change-metrics-grid" class="verdict-grid hidden">
+              <div class="metric-card">
+                <span class="metric-label">Dominant Dynamic</span>
+                <span id="change-dynamic-val" class="metric-value highlight">--</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Total Surface Altered</span>
+                <span id="total-change-val" class="metric-value">--%</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Vegetation Loss</span>
+                <span id="veg-loss-val" class="metric-value danger-text">--%</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Built-up Gain</span>
+                <span id="builtup-gain-val" class="metric-value warning-text">--%</span>
+              </div>
+            </div>
+
+            <div id="fusion-metrics-grid" class="verdict-grid hidden">
+              <div class="metric-card">
+                <span class="metric-label">Built-up Surface (SAR)</span>
+                <span id="fusion-builtup-val" class="metric-value highlight">--%</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Water Bodies (SAR+Opt)</span>
+                <span id="fusion-water-val" class="metric-value">--%</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Optical Cloud Cover</span>
+                <span id="fusion-cloud-val" class="metric-value">--%</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-label">Radar Cloud Penetration</span>
+                <span id="fusion-penetrated-val" class="metric-value success-text">--%</span>
+              </div>
+            </div>
+
+            <div id="probabilities-section" class="probabilities-section">
+              <h4>Class Probability Distribution</h4>
+              <div id="probs-container" class="probs-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="card audit-card" id="audit-section">
+      <div class="audit-header" id="audit-toggle">
+        <div class="audit-title-wrap">
+          <span class="audit-icon">📜</span>
+          <h3>Auditable Execution Trace &amp; Tool Registry</h3>
+          <span class="badge" id="audit-count">0 steps</span>
+        </div>
+        <div class="audit-actions">
+          <button id="download-report-btn" class="btn-link" type="button">Export report</button>
+          <span class="toggle-arrow" id="audit-arrow">▼</span>
+        </div>
+      </div>
+
+      <div id="audit-body" class="audit-body">
+        <p class="audit-desc">Every router classification, input verification, specialist tool execution, and parameter configuration is permanently recorded here.</p>
+        <div id="audit-list" class="audit-list">
+          <div class="audit-empty">No recent audit logs found. Execute a query to observe logged agent decisions.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>SatQuery AI &bull; Agentic Remote-Sensing Vision-Language Architecture</p>
+    </footer>
+  </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="interactions.js"></script>
+</body>
+</html>
