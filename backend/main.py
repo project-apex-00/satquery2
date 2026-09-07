@@ -30,7 +30,7 @@ from inference.rs_inference import RSClassifier
 from inference.grounding_engine import ground_region
 from inference.change_engine import detect_changes
 from inference.sar_fusion_engine import fuse_optical_sar
-from inference.geo_io import load_image_as_rgb
+from inference.geo_io import load_image_as_rgb, HAS_RASTERIO
 
 app = FastAPI(title="SatQuery AI")
 
@@ -48,6 +48,16 @@ app.add_middleware(
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
 _classifier = None
+
+print(f"[startup] rasterio available: {HAS_RASTERIO}", flush=True)
+if not HAS_RASTERIO:
+    print(
+        "[startup] WARNING: rasterio failed to import. GeoTIFF preview/analysis "
+        "will fall back to PIL, which cannot open multi-band or float-dtype "
+        "scientific rasters. Check that 'rasterio' installed successfully in "
+        "the build logs (pip install rasterio) for this platform/architecture.",
+        flush=True,
+    )
 
 
 def ensure_model_downloaded():
@@ -126,6 +136,14 @@ def get_classification_safely(image_path: str, question: str) -> dict:
 
 @app.get("/health")
 def health_check():
+    rasterio_version = None
+    if HAS_RASTERIO:
+        try:
+            import rasterio as _rio
+            rasterio_version = _rio.__version__
+        except Exception:
+            rasterio_version = "installed (version lookup failed)"
+
     return {
         "status": "ok",
         "service": "SatQuery AI",
@@ -135,6 +153,12 @@ def health_check():
             "bi_temporal_change",
             "cross_modal_sar_optical",
         ],
+        # Diagnostic: if rasterio_available is false, GeoTIFF loading falls back
+        # to plain PIL, which cannot open multi-band/float scientific rasters
+        # (only simple 8-bit RGB tiffs). This is the most common cause of
+        # "cannot identify image file" errors on /preview and /analyze.
+        "rasterio_available": HAS_RASTERIO,
+        "rasterio_version": rasterio_version,
     }
 
 
