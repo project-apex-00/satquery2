@@ -311,6 +311,20 @@ async def analyze(
                 "tools_executed": tools_selected,
             }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Without this, any failure inside the specialist tools (e.g. an
+        # undecodable GeoTIFF, a Gemini API error, a bad checkpoint) propagates
+        # as a bare, bodyless 500 -- the frontend then has nothing to show the
+        # user beyond "Server returned HTTP 500". Surface the real reason instead.
+        detail = str(e) or e.__class__.__name__
+        log_step("analyze_execution_failed", {
+            "task_hint": task_hint,
+            "question": question,
+            "error": detail,
+        })
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {detail}")
     finally:
         if os.path.exists(tmp1_path):
             os.remove(tmp1_path)
