@@ -813,11 +813,17 @@ body {
 }
 
 .preview-container img {
-  max-width: 100%;
-  max-height: 180px;
+  width: 100%;
+  height: 180px;
   border-radius: 6px;
-  object-fit: cover;
+  object-fit: contain;
   border: 1px solid #374151;
+  background: #060a13;
+  /* Many source rasters (esp. small test/demo tiles) are only a few dozen
+     px per side. Without an explicit height + upscale-aware rendering they
+     appear as a near-invisible speck instead of an enlarged, readable tile. */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: pixelated;
 }
 
 .preview-meta {
@@ -1115,14 +1121,21 @@ body {
   padding: 8px;
   border-radius: 8px;
   border: 1px solid #1e293b;
+  min-height: 220px;
 }
 
 .evidence-image-wrap img {
-  max-width: 100%;
-  max-height: 280px;
+  width: 100%;
+  height: 220px;
   border-radius: 4px;
   object-fit: contain;
   animation: riseIn 0.5s ease both;
+  /* Same reasoning as .preview-container img above: grounding/change/fusion
+     overlays are drawn at the source raster's native resolution, which for
+     small demo/test tiles can be a few dozen px -- force an upscale so the
+     bounding box + label are actually legible instead of a tiny speck. */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: pixelated;
 }
 
 .verdict-grid {
